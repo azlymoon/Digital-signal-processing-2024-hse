@@ -134,7 +134,7 @@ def AM_signal_research(carrier_signal, message_signal):
 
 def FM_signal_research(carrier_signal, message_signal):
     fm_signal = A * np.sin(2 * np.pi * f1 * t + (B * frequency_deviation) / f2 * np.sin(2 * np.pi * f2 * t))
-    show_modulation(carrier_signal, message_signal, fm_signal, title_modulation='АМ сигнал')
+    show_modulation(carrier_signal, message_signal, fm_signal, title_modulation='ЧМ сигнал')
 
     fm_signal_with_noise = normal_noise_overlay(fm_signal)
 
