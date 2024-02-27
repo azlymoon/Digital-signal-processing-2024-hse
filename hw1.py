@@ -4,7 +4,7 @@ import sounddevice as sd
 import time
 
 A = 1  # Амплитуда сигналов
-fs = 2000  # Частота дискретизации
+fs = 10000  # Частота дискретизации
 step = 1 / fs  # Шаг дискретизации
 duration = 1  # Длительность звука
 
@@ -36,7 +36,7 @@ def show_plot_signal(duration=0.005, freq=freq_nums[0]):
 
 def play_signal(signal):
     start_time = time.time()
-    sd.play(signal, samplerate=2000)
+    sd.play(signal, samplerate=fs)
     sd.wait()
     print("Played sound for {:.2f} seconds".format(time.time() - start_time))
 
