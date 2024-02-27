@@ -7,9 +7,9 @@ B = N  # Амплитуда информационного сигнала
 f1 = 3 * k * N  # Частота несущего сигнала
 f2 = 100 * N  # Частота информационного сигнала
 duration = 0.0025  # Продолжительность сигнала в секундах
-sampling_rate = 1e6  # Число временных отсчетов
-modulation_index = 1  # Коэффициент модуляции
-frequency_deviation = sampling_rate / 500  # Частотная девиация
+sampling_rate = 2e6  # Число временных отсчетов
+modulation_index = 0.5  # Коэффициент модуляции
+frequency_deviation = sampling_rate / 1000  # Частотная девиация
 t = np.arange(0, duration, 1 / sampling_rate)
 
 
@@ -21,7 +21,7 @@ def fft_spectrum(signal, harmonic_threshold=None):
     frequencies = np.fft.fftfreq(len(signal), 1 / sampling_rate)
 
     # Получение амплитуд спектра (усреднение магнитуд по комплексным числам)
-    spectrum = np.abs(fft_result) / len(signal)
+    spectrum = 2 * np.abs(fft_result) / len(signal)
 
     # Фильтрация гармоник
     if harmonic_threshold is not None:
@@ -51,7 +51,6 @@ def show_spectrum_signal(signal, harmonic_threshold=None, mode=1, title='Спе�
 
 
 def normal_noise_overlay(signal):
-    print(np.max(signal))
     noise_amplitude = np.max(signal) / 2
     noise = np.random.normal(0, noise_amplitude, len(t))
     return signal + noise
@@ -87,9 +86,11 @@ def show_modulation(carrier_signal, message_signal, modulation_signal, title_mod
     plt.show()
 
 
-def show_signal_after_noise_fft(signal):
+def show_signal_after_noise_fft(signal, harmonic_threshold=None):
     signal_with_noise = normal_noise_overlay(signal)
     fft_result = np.fft.fft(signal_with_noise)
+    if harmonic_threshold is not None:
+        fft_result = np.where(2 * np.abs(fft_result) / len(signal) > harmonic_threshold, fft_result, 0)
     ifft_result = np.fft.ifft(fft_result)
 
     plt.figure(figsize=(12, 6))
@@ -99,7 +100,7 @@ def show_signal_after_noise_fft(signal):
     plt.title('Оригинальный сигнал')
 
     plt.subplot(2, 1, 2)
-    plt.plot(t, ifft_result.real, label='Восстановленный сигнал (real)')
+    plt.plot(t, ifft_result.real, label='Восстановленный сигнал')
     plt.title('Результат обратного FFT')
     plt.legend()
 
@@ -126,7 +127,7 @@ def AM_signal_research(carrier_signal, message_signal):
     show_spectrum_signal(
         signal=am_signal_with_noise,
         title='Спектр АМ сигнала с добавлением шума',
-        harmonic_threshold=10,
+        harmonic_threshold=None,
     )
 
     show_signal_after_noise_fft(am_signal)
@@ -151,7 +152,7 @@ def FM_signal_research(carrier_signal, message_signal):
     show_spectrum_signal(
         signal=fm_signal_with_noise,
         title='Спектр ЧM сигнала с добавлением шума',
-        harmonic_threshold=5,
+        harmonic_threshold=None,
     )
 
     show_signal_after_noise_fft(fm_signal)
