@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 def rectangle_signal(duration, pulse_width, pulse_position, sample_rate=2000, amplitude=1):
     t = np.arange(0, duration, 1 / sample_rate)
     signal = np.zeros_like(t)
-
     for position in pulse_position:
         pulse_start = int(position * sample_rate)
         pulse_end = int(pulse_start + pulse_width * sample_rate)
@@ -63,7 +62,7 @@ def main():
     # Считаем свертку двух прямоугольных сигналов
     # ------------------------------------------------ #
     t_rec_1, signal_rec_1 = rectangle_signal(duration, 0.2, [0.4])
-    t_rec_2, signal_rec_2 = rectangle_signal(duration, 0.2, [0.1, 0.7])
+    t_rec_2, signal_rec_2 = rectangle_signal(duration, 0.2, [0.4])
 
     rec_conv = np.convolve(signal_rec_1, signal_rec_2, mode='full')
     t_rec_conv = np.arange(0, 2 * duration, 1 / sample_rate)[:-1]
@@ -77,7 +76,7 @@ def main():
 
     # Считаем свертку двух треугольных сигналов
     # ------------------------------------------------ #
-    t_triangular, signal_triangular = triangular_signal(duration, 4)
+    t_triangular, signal_triangular = triangular_signal(duration, 1)
 
     triangular_conv = np.convolve(signal_triangular, signal_triangular, mode='full')
     t_triangular_conv = np.arange(0, 2 * duration, 1 / sample_rate)[:-1]
@@ -104,7 +103,7 @@ def main():
     # Считаем свертку сигнала с экспонентой и прямоугольного сигнала
     # ------------------------------------------------ #
     t_exp, signal_exp = signal(duration=10)
-    t_rec, signal_rec = rectangle_signal(10, 2, [0, 4, 8])
+    t_rec, signal_rec = rectangle_signal(10, 2, [4])
 
     exp_rec_conv = np.convolve(signal_rec, signal_exp, mode='full')
     t_exp_rec_conv = np.arange(0, 20, 1 / sample_rate)[:-1]
@@ -182,7 +181,7 @@ def main():
         f'Длина циклической свертки (посчитана руками): {len(circle_conv_two_signal_math)}',
         f'Длина циклической свертки (посчитана по теореме): {len(circle_conv_two_signal_fft)}',
         f'Количества совпадений выражения fft(f * g) = fft(f) * fft(g): {np.count_nonzero(
-            (fft(circle_conv_two_signal_math) - (fft(signal1) * fft(signal2))) < eps
+            np.abs((fft(circle_conv_two_signal_math) - (fft(signal1) * fft(signal2)))) < eps
         )}',
         sep='\n'
     )
