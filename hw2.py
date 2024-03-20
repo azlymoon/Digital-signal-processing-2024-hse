@@ -131,6 +131,7 @@ def AM_signal_research(carrier_signal, message_signal):
     )
 
     show_signal_after_noise_fft(am_signal)
+    show_signal_after_noise_fft(am_signal, 20)
 
 
 def FM_signal_research(carrier_signal, message_signal):
@@ -156,6 +157,7 @@ def FM_signal_research(carrier_signal, message_signal):
     )
 
     show_signal_after_noise_fft(fm_signal)
+    show_signal_after_noise_fft(fm_signal, 5)
 
 
 def main():
