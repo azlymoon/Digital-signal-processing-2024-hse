@@ -1,6 +1,7 @@
 import math
 import numpy as np
 from matplotlib import pyplot as plt
+from scipy.signal import lfilter
 
 # Частоты двухканальных сигналов
 freqs_dtmf = [
@@ -18,8 +19,10 @@ freqs_dtmf = [
 
 
 def signal_dtmf(freq, sample_rate=8000, duration=1, window_size=205, A=1):
-    t = np.linspace(0, duration, sample_rate)[:window_size]
-    return A * np.sin(2.0 * np.pi * freq[0] * t) + A * np.sin(2.0 * np.pi * freq[1] * t)
+    t = np.linspace(0, duration, sample_rate)
+    if window_size is not None:
+        t = t[:window_size]
+    return A * np.sin(2.0 * np.pi * freq[0] * t) + A * np.sin(2.0 * np.pi * freq[1] * t), t
 
 
 def goertzel(samples, sample_rate, target_freqs):
@@ -50,6 +53,58 @@ def goertzel(samples, sample_rate, target_freqs):
         freqs.append(f * sample_rate)
     return freqs, results
 
+
+# def goertzel(*freqs, samples, sample_rate):
+#     """
+#     Implementation of the Goertzel algorithm, useful for calculating individual
+#     terms of a discrete Fourier transform.
+#     `samples` is a windowed one-dimensional signal originally sampled at `sample_rate`.
+#     The function returns 2 arrays, one containing the actual frequencies calculated,
+#     the second the coefficients `(real part, imag part, power)` for each of those frequencies.
+#     For simple spectral analysis, the power is usually enough.
+#     Example of usage :
+#
+#         freqs, results = goertzel(some_samples, 44100, (400, 500), (1000, 1100))
+#     """
+#     window_size = len(samples)
+#     f_step = sample_rate / float(window_size)
+#     f_step_normalized = 1.0 / window_size
+#
+#     # Calculate all the DFT bins we have to compute to include frequencies
+#     # in `freqs`.
+#     bins = set()
+#     for f_range in freqs:
+#         f_start, f_end = f_range
+#         k_start = int(math.floor(f_start / f_step))
+#         k_end = int(math.ceil(f_end / f_step))
+#
+#         if k_end > window_size - 1: raise ValueError('frequency out of range %s' % k_end)
+#         bins = bins.union(range(k_start, k_end))
+#
+#     # For all the bins, calculate the DFT term
+#     n_range = range(0, window_size)
+#     freqs = []
+#     results = []
+#     for k in bins:
+#
+#         # Bin frequency and coefficients for the computation
+#         f = k * f_step_normalized
+#         w_real = 2.0 * math.cos(2.0 * math.pi * f)
+#         w_imag = math.sin(2.0 * math.pi * f)
+#
+#         # Doing the calculation on the whole sample
+#         d1, d2 = 0.0, 0.0
+#         for n in n_range:
+#             y = samples[n] + w_real * d1 - d2
+#             d2, d1 = d1, y
+#
+#         # Storing results `(real part, imag part, power)`
+#         results.append((
+#             0.5 * w_real * d1 - d2, w_imag * d1,
+#             d2 ** 2 + d1 ** 2 - w_real * d1 * d2)
+#         )
+#         freqs.append(f * sample_rate)
+#     return freqs, results
 
 def n_largest_indices_sorted(arr, n):
     indices = np.argpartition(arr, -n)[-n:]
@@ -83,7 +138,7 @@ def show_signal_after_noise_fft(signal, signal_with_noise, t, harmonic_threshold
     plt.show()
 
 
-def decoder_all_dtmf():
+def decode_all_dtmf():
     # Пример использования алгоритма Герцеля на декодирование сигнала DTMF
     freqs_list = []
     results_list = []
@@ -95,7 +150,7 @@ def decoder_all_dtmf():
 
     for i in range(10):
         plt.subplot(5, 2, (i + 1))
-        sine_wave = signal_dtmf(
+        sine_wave, t = signal_dtmf(
             freq=freqs_dtmf[i],
             sample_rate=sample_rate,
         )
@@ -133,7 +188,7 @@ def decode_sequence_dtmf():
     target_freqs = [697.0, 770.0, 852.0, 941.0, 1209.0, 1336.0, 1477.0]
     sample_rate = 8000
     for num in nums:
-        sine_wave = signal_dtmf(
+        sine_wave, t = signal_dtmf(
             freq=freqs_dtmf[num],
             sample_rate=sample_rate,
         )
@@ -174,10 +229,43 @@ def decode_am_signal():
     plt.show()
 
 
+def decode_goerztel_with_filter():
+    sample_rate = 4000
+    target_freqs = np.array([697.0, 770.0, 852.0, 941.0, 1209.0, 1336.0, 1477.0])
+    n = int(input("Введите цифру: "))
+    results = []
+    xn, t = signal_dtmf(freqs_dtmf[n], sample_rate=sample_rate, window_size=None)
+    # for i, freq in enumerate(target_freqs):
+    #     N = len(t)
+    #     k = int(N * freq / sample_rate)
+    #
+    #     res = lfilter(np.array([1, -np.exp(-2j * np.pi * k / N)]), np.array([1, -2 * np.cos(2 * np.pi * k / N), 1]),
+    #                   np.array([*xn, 0]))
+    #     results.append(res[-1] * np.exp(-2j * np.pi * k))
+
+    N = len(t)
+    freq_ind = np.round(target_freqs * (N / sample_rate)) + 1
+
+    for i in range(len(freq_ind)):
+        k = freq_ind[i]
+        hk = np.zeros(N)
+        for n in range(N):
+            hk[n] = np.exp(-1j * 2 * np.pi * k) * np.exp(1j * 2 * np.pi * k * n / N)
+        yk = np.convolve(xn, hk, 'same')
+        results.append(np.abs(yk[-1]))
+
+    plt.stem(target_freqs, results, linefmt='b', markerfmt='bo')
+    plt.ylabel('$|S(k)|$')
+    plt.xlabel('$f(k)$ Гц')
+    plt.grid()
+    plt.show()
+
+
 def main():
-    decoder_all_dtmf()
+    decode_all_dtmf()
     decode_sequence_dtmf()
     decode_am_signal()
+    decode_goerztel_with_filter()
 
 
 if __name__ == '__main__':
